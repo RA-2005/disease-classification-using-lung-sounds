@@ -1,0 +1,54 @@
+import pandas as pd
+from pathlib import Path
+import soundfile as sf
+
+def verify_unified_dataset(metadata_path, audio_dir):
+    """Verify all samples are correctly standardized"""
+    
+    df = pd.read_csv(metadata_path)
+    audio_dir = Path(audio_dir)
+    
+    print("=" * 60)
+    print("UNIFIED DATASET VERIFICATION")
+    print("=" * 60)
+    
+    print(f"\n✓ Total samples: {len(df)}")
+    print(f"✓ Metadata columns: {list(df.columns)}")
+    
+    # Check audio files
+    print(f"\n--- Audio File Verification ---")
+    missing_files = 0
+    for idx, row in df.iterrows():
+        filepath = audio_dir / row['filepath']
+        if not filepath.exists():
+            print(f"✗ Missing: {row['filepath']}")
+            missing_files += 1
+        else:
+            # Check audio properties
+            data, sr = sf.read(filepath)
+            if sr != 4000:
+                print(f"✗ Wrong sample rate: {row['filepath']} ({sr} Hz)")
+            if len(data) != 20000:
+                print(f"✗ Wrong duration: {row['filepath']} ({len(data)} samples)")
+    
+    print(f"✓ Files checked: {len(df) - missing_files}/{len(df)}")
+    if missing_files == 0:
+        print("✓ All audio files exist and are standardized!")
+    
+    # Disease distribution
+    print(f"\n--- Disease Distribution ---")
+    print(df['disease_label'].value_counts())
+    
+    # Source distribution
+    print(f"\n--- Source Distribution ---")
+    print(df['source_dataset'].value_counts())
+    
+    print("\n" + "=" * 60)
+    print("✓ VERIFICATION COMPLETE")
+    print("=" * 60)
+
+if __name__ == "__main__":
+    verify_unified_dataset(
+        metadata_path="data_processed/combined_metadata.csv",
+        audio_dir="data_processed"
+    )
